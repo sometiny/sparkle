@@ -1,0 +1,27 @@
+{
+    "name": "jazor/sparkle",
+    "type": "library",
+    "description": "jazor sparkle",
+    "keywords": ["jazor"],
+    "homepage": "https://github.com/cook-code-jazor/sparkle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "anlige",
+            "email": "zhanghuiguoanlige@126.com",
+            "homepage": "https://github.com/cook-code-jazor/sparkle"
+        }
+    ],
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Sparkle\\": "./src/"
+        },
+	    "files": [
+	      "./src/helper.php"
+	    ]
+    },
+    "minimum-stability": "dev"
+}
