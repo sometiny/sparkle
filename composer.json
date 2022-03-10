@@ -13,7 +13,10 @@
         }
     ],
     "require": {
-        "php": ">=7.4"
+        "php": ">=7.4",
+        "jazor/core" : "dev-master",
+        "topthink/think-orm": "2.*",
+        "jazor/illuminate": "dev-master"
     },
     "autoload": {
         "psr-4": {
