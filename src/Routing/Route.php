@@ -42,8 +42,9 @@ class Route
     }
 
     public function checkConditions($params){
+        $paramNames = array_column($this->paramNames, 'required', 'name');
         foreach ($params as $key => $value){
-            if(!isset($this->conditions[$key])) continue;
+            if(!isset($this->conditions[$key]) || ($value === null && !$paramNames[$key])) continue;
             if(!preg_match(sprintf('/%s/', $this->conditions[$key]), $value)){
                 return false;
             }

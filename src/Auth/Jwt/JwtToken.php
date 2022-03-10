@@ -1,8 +1,10 @@
 <?php
 
 
-namespace Sparkle\Jwt;
+namespace Sparkle\Auth\Jwt;
 
+
+use Sparkle\Auth\Authenticatable;
 
 class JwtToken
 {
@@ -55,7 +57,7 @@ class JwtToken
      * @return array
      * @throws \Exception
      */
-    public static function parse($token)
+    public static function verify($token)
     {
         $hash = env('JWT_HASH');
         $bind_by = env('JWT_BIND_BY');

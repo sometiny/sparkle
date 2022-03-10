@@ -120,7 +120,7 @@ class Router
             $success = preg_match('/^{(\w+)(\?)?}$/', $part, $match, PREG_UNMATCHED_AS_NULL);
             if ($success) {
                 $result[] = sprintf('%s\/(?<%s>[^\/]+)%s', $match[2] ? '(?:' : '', $match[1], $match[2] ? ')?' : '');
-                $paramNames[] = $match[1];
+                $paramNames[] = ['name' => $match[1], 'required' => empty($match[2])];
                 continue;
             }
             if (strpos($part, '{') !== false) {
@@ -153,7 +153,7 @@ class Router
 
             $paramName = $match[1][0];
             $result[] = sprintf('(?<%s>\w+?)', $paramName);
-            $paramNames[] = $paramName;
+            $paramNames[] = ['name' => $paramName, 'required' => true]; ;
         }
         if ($index < $length) {
             $result[] = self::getValidRegExpExpression(substr($part, $index));
@@ -178,6 +178,7 @@ class Router
     private static function match(\Sparkle\Http\Request $req)
     {
         $path = $req->path();
+        $path = rtrim($path, '/');
         $method = $req->method();
         if (!isset(self::$routes[$method]) &&
             !isset(self::$static_routes[$method])) {
@@ -198,8 +199,8 @@ class Router
 
             $paramNames = $route->getParamNames();
             $params = [];
-            foreach ($paramNames as $name) {
-                $params[$name] = $match[$name] ?? null;
+            foreach ($paramNames as $param) {
+                $params[$param['name']] = $match[$param['name']] ?? null;
             }
             if(!$route->checkConditions($params)) continue;
 
