@@ -10,7 +10,7 @@ class JwtToken
 {
     /***
      * @param Authenticatable $user
-     * @return string
+     * @return array
      * @throws \Exception
      */
     public static function create(Authenticatable $user)
@@ -30,11 +30,12 @@ class JwtToken
 
         $header = json_encode(["typ" => "JWT", "alg" => "HS256"]);
 
+        $expires = strtotime('+' . $expires . 'seconds');
         $payload = array(
             'identity' => $user->getAuthIdentifier(),
             'payload' => $user->getPayload(),
             'role' => $user->getRole(),
-            'expired_at' => strtotime('+' . $expires . 'seconds')
+            'expired_at' => $expires
         );
 
         if (!empty($bind_by)) {
@@ -49,7 +50,10 @@ class JwtToken
         $payload = base64_encode_url_safe($payload);
         $signature = base64_encode_url_safe($signature);
 
-        return $header . '.' . $payload . '.' . $signature;
+        return [
+            'access_token' => $header . '.' . $payload . '.' . $signature,
+            'expires' => $expires
+        ];
     }
 
     /***

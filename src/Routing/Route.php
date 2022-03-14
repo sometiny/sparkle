@@ -21,6 +21,7 @@ class Route
     private array $paramNames = [];
 
     private array $conditions = [];
+    private array $middleware = [];
 
     public function __construct($method, $path, $action, ?Group $group)
     {
@@ -28,6 +29,21 @@ class Route
         $this->path = $path;
         $this->action = $action;
         $this->group = $group;
+        if($group != null){
+            $this->middleware($group->getMiddleware());
+        }
+    }
+
+    public function middleware($middleware){
+        $middleware = (array)$middleware;
+        foreach ($middleware as $value){
+            if(is_string($value)){
+                $this->middleware[] = app()->getMiddleware($value);
+                continue;
+            }
+            $this->middleware[] = $value;
+        }
+        return $this;
     }
 
     /**
@@ -78,8 +94,18 @@ class Route
         }
 
         $params = self::getBindParams((new \ReflectionClass($instance))->getMethod($method)->getParameters(), $req);
-        return $instance->{$method}(...$params);
 
+        if(method_exists($instance, '__beforeInvoke')){
+            $instance->__beforeInvoke($method);
+        }
+
+        $response = $instance->{$method}(...$params);
+
+        if(method_exists($instance, '__afterInvoke')){
+            $instance->__afterInvoke($method, $response);
+        }
+
+        return $response;
     }
 
     /**
@@ -197,5 +223,13 @@ class Route
         if($name === null) return $this->name;
         $this->name = $name;
         return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getMiddleware(): array
+    {
+        return $this->middleware;
     }
 }

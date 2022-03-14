@@ -61,4 +61,12 @@ class Response extends Headers
     {
         return $this->body;
     }
+
+    /**
+     * @return int|int
+     */
+    public function getStatusCode()
+    {
+        return $this->statusCode;
+    }
 }

@@ -32,6 +32,13 @@ class Group
     {
         return $this->options;
     }
+    /**
+     * @return array
+     */
+    public function getMiddleware(): array
+    {
+        return (array)($this->options['middleware'] ?? []);
+    }
 
     public function makePath($subPath)
     {
@@ -42,6 +49,7 @@ class Group
     {
         $path = $this->makePath($path);
         $options = array_merge($this->options, $options);
+        $options['middleware'] = $this->getMiddleware() + (array)($options['middleware'] ?? []);
         return new Group($path, $options);
     }
 

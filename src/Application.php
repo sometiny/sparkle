@@ -30,6 +30,7 @@ class Application
     private Env $env;
 
     private array $autoload = [];
+    private array $middleware = [];
 
     /**
      * Application constructor.
@@ -82,13 +83,30 @@ class Application
     }
 
     /**
-     *
+     * @param $name
+     * @param $class
      */
+    protected function registerMiddleware($name, $class){
+        $this->middleware[$name] = $class;
+    }
+
     protected function registerAutoload(){
         if(empty($this->autoload)) return;
 
         spl_autoload_register(array($this, 'loadClass'));
 
+    }
+
+    public function getMiddleware($middleware){
+        [$name, $parameters] = array_pad(explode(':', $middleware, 2), 2, []);
+        if(!is_array($parameters)){
+            $parameters = [$parameters];
+        }
+        $name = $this->middleware[$name] ?? $name;
+
+        return function ($req, $next) use ($name, $parameters){
+            return (new $name())->handle($req, $next, ...$parameters);
+        };
     }
 
     private function loadClass($class){
@@ -196,7 +214,7 @@ class Application
             $response->setBody('unknown response');
             $response->send();
         }catch (HttpException $e){
-            $response = new Response($e->getStatusCode(), $e->getMessage());
+            $response = $this->getResponse($req, new Response($e->getStatusCode(), $e->getMessage()));
             $response->send();
         }catch (HttpResponseException $e){
             $e->getResponse()->send();
@@ -207,10 +225,18 @@ class Application
             }else{
                 $response->setBody('<pre>' . $e->getMessage() . '</pre>');
             }
-            $response->send();
+            $this->getResponse($req, $response)->send();
         } finally {
             spl_autoload_unregister(array($this, 'loadClass'));
         }
+    }
+    private function getResponse(Request $req, Response $response){
+        if($req->accept('application/json') && !($response instanceof JsonResponse)){
+            return new JsonResponse([
+                'message' => $response->getBody()
+            ], $response->getStatusCode());
+        }
+        return $response;
     }
 
     protected function getRoutesPath($path){

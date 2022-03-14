@@ -8,6 +8,8 @@ use Jazor\NotSupportedException;
 use Sparkle\Application;
 use Sparkle\Facades\Request;
 use Sparkle\Http\Response;
+use Sparkle\Pipeline;
+use think\helper\Str;
 
 /**
  * Class Router
@@ -40,6 +42,11 @@ class Router
         'OPTIONS' => [],
         'ANY' => [],
     ];
+
+    private const ACTION_LIST = 1;
+    private const ACTION_SAVE = 2;
+    private const ACTION_SHOW = 4;
+    private const ACTION_DELETE = 8;
 
     private static array $groupStack = [];
 
@@ -86,7 +93,7 @@ class Router
         $group = self::getGroup();
 
         $path = $group ? $group->makePath($path) : $path;
-        if($path != '/' && $path[strlen($path)-1] == '/'){
+        if ($path != '/' && $path[strlen($path) - 1] == '/') {
             $path = substr($path, 0, strlen($path) - 1);
         }
 
@@ -153,7 +160,7 @@ class Router
 
             $paramName = $match[1][0];
             $result[] = sprintf('(?<%s>\w+?)', $paramName);
-            $paramNames[] = ['name' => $paramName, 'required' => true]; ;
+            $paramNames[] = ['name' => $paramName, 'required' => true];;
         }
         if ($index < $length) {
             $result[] = self::getValidRegExpExpression(substr($part, $index));
@@ -162,7 +169,8 @@ class Router
         return implode('', $result);
     }
 
-    private static function getValidRegExpExpression($source){
+    private static function getValidRegExpExpression($source)
+    {
 
         return str_replace(['.', '-'], ['\.', '\-'], $source);
     }
@@ -202,12 +210,20 @@ class Router
             foreach ($paramNames as $param) {
                 $params[$param['name']] = $match[$param['name']] ?? null;
             }
-            if(!$route->checkConditions($params)) continue;
+            if (!$route->checkConditions($params)) continue;
 
             $req->setParams($params);
             return $route;
         }
-        if(isset($staticRoutes['*'])) return $staticRoutes['*'];
+
+        while (true) {
+            $pattern = $path . '/*';
+            if (isset($staticRoutes[$pattern])) return $staticRoutes[$pattern];
+            $lastIndex = strrpos($path, '/');
+            if ($lastIndex === false) continue;
+            $path = substr($path, 0, $lastIndex);
+        }
+        if (isset($staticRoutes['*'])) return $staticRoutes['*'];
 
         return null;
 
@@ -224,7 +240,12 @@ class Router
             return new Response(404, '404 Not Found');
         }
         self::$current = $route;
-        return $route->execute($req);
+        $pipe = new Pipeline($route->getMiddleware());
+        $pipe->via('handle');
+
+        return $pipe->pipe($req, function ($req) use ($route) {
+            return $route->execute($req);
+        });
     }
 
     /**
@@ -238,10 +259,21 @@ class Router
 
     public static function __callStatic($name, $arguments)
     {
-        if(!in_array($name, ['head', 'get', 'post', 'put', 'delete', 'options', 'any'])) throw new NotSupportedException();
+        if (!in_array($name, ['head', 'get', 'post', 'put', 'delete', 'options', 'any'])) throw new NotSupportedException();
         return self::addRoute(strtoupper($name), ...$arguments);
     }
-    public static function getRegisteredRoutes(){
+
+    public static function getRegisteredRoutes()
+    {
         return ['statics' => self::$static_routes, 'routes' => self::$routes];
+    }
+
+    public static function mixin($name, $allowedAction = 15)
+    {
+        $controllerName = Str::studly($name) . 'Controller';
+        if( $allowedAction & static::ACTION_LIST ) Router::get($name, $controllerName . '@index');
+        if( $allowedAction & static::ACTION_SAVE ) Router::post($name . '/{id?}', $controllerName . '@save')->where('id', '[0-9]+');
+        if( $allowedAction & static::ACTION_SHOW ) Router::get($name . '/{id}', $controllerName . '@show')->where('id', '[0-9]+');
+        if( $allowedAction & static::ACTION_DELETE ) Router::delete($name . '/{id}', $controllerName . '@delete')->where('id', '[0-9]+');
     }
 }

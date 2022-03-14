@@ -10,6 +10,11 @@ use Sparkle\Http\HttpException;
 class Authenticate
 {
 
+    /**
+     * @param $credentials
+     * @param $class
+     * @throws HttpException
+     */
     public static function auth($credentials, $class)
     {
         $password = $credentials['password'];
@@ -20,26 +25,27 @@ class Authenticate
 
         $authenticatable = $class::where($credentials)->find();
         if (!$authenticatable) {
-            throw new HttpException(400, 'credentials invalid');
+            throw new HttpException(400, 'credentials is invalid');
         }
         if (password_verify($password, $authenticatable->getAuthPassword())) {
-            throw new HttpException(403, 'password invalid');
+            throw new HttpException(403, 'password is invalid');
         }
-
-        try {
-            return JwtToken::create($authenticatable);
-        } catch (\Exception $e) {
-            throw new HttpException(500, $e->getMessage());
-        }
+        return $authenticatable;
     }
 
+    /**
+     * @param $token
+     * @param $class
+     * @return mixed
+     * @throws HttpException
+     */
     public static function verify($token, $class)
     {
         try {
             $payload = JwtToken::verify($token);
             return (new $class())->getAuthenticatable($payload);
         } catch (\Exception $e) {
-            throw new HttpException(401, 'access-token invalid');
+            throw new HttpException(401, 'access_token is invalid');
         }
     }
 }

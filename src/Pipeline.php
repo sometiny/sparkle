@@ -55,7 +55,7 @@ class Pipeline
             if (is_string($parameters)) {
                 $parameters = explode(',', $parameters);
             }
-            return (new $name())->{$this->via}([$context, $next, ...$parameters]);
+            return (new $name())->{$this->via}($context, $next, ...$parameters);
         }
 
         if (is_array($item)) {

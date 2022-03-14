@@ -3,6 +3,8 @@
 
 namespace Sparkle\Http;
 
+use Illuminate\Support\Str;
+
 /**
  * Class Request
  * @package Sparkle\Http
@@ -18,13 +20,14 @@ class Request
     private array $params = [];
     private array $post = [];
     private array $files = [];
+    private array $headers = [];
     private $server;
     private $cookie;
     private $session;
 
     private int $step = 0;
 
-    public function __construct($method, $path, $get, $post, $files, $server, $cookie, $session)
+    public function __construct($method, $path, $get, $post, $files, $headers, $server, $cookie, $session)
     {
         $this->method = $method;
         $this->query = $get;
@@ -34,6 +37,7 @@ class Request
         $this->cookie = $cookie;
         $this->session = $session;
         $this->files = $files;
+        $this->headers = $headers;
     }
 
     public static function capture()
@@ -77,10 +81,20 @@ class Request
                 $files = self::getFiles($_FILES);
                 break;
         }
-
-        $req = new Request($method, $path, $query, $input, $files, $_SERVER, $_COOKIE, $_SESSION ?? null);
+        $headers = self::getHeaders($_SERVER);
+        $req = new Request($method, $path, $query, $input, $files, $headers, $_SERVER, $_COOKIE, $_SESSION ?? null);
         self::$current = $req;
         return $req;
+    }
+
+    private static function getHeaders($server){
+        $headers = [];
+        foreach ($server as $key => $value){
+            if(!Str::startsWith($key, 'HTTP_')) continue;
+            $name = str_replace('_', '-', strtolower(substr($key, 5)));
+            $headers[$name] = $value;
+        }
+        return $headers;
     }
 
     private static function getFiles($rawFiles){
@@ -147,6 +161,10 @@ class Request
     {
         return $name ? $this->post[$name] ?? $default : $this->post;
     }
+    public function header($name = null, $default = null)
+    {
+        return $name ? $this->headers[$name] ?? $default : $this->headers;
+    }
 
     public function query($name = null, $default = null)
     {
@@ -158,6 +176,12 @@ class Request
     }
 
     public function input($name, $default = null){
+        if(!$name) {
+            return $this->query[$name]
+                + $this->post[$name]
+                + $this->params[$name]
+                + $this->files[$name];
+        }
         return $this->query[$name]
             ?? $this->post[$name]
             ?? $this->params[$name]
