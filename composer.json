@@ -15,7 +15,7 @@
     "require": {
         "php": ">=7.4",
         "jazor/core" : "dev-master",
-        "topthink/think-orm": "2.*",
+   		"jazor/think-orm-for-sparkle": "2.0.x-dev",
         "jazor/illuminate": "dev-master"
     },
     "autoload": {
