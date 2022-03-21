@@ -43,6 +43,11 @@ class Application
 
         if ($appPath === null) $appPath = realpath('../App');
         if (!is_dir($appPath)) throw new \Exception('app dir not found');
+        set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext)
+        {
+            if (0 === error_reporting()) return false;
+            throw new \RuntimeException($errstr . "\r\nFile: " . $errfile . "\r\nLine: " . $errline, 0);
+        });
 
         $this->appPath = Path::format($appPath);
 
@@ -184,6 +189,7 @@ class Application
     {
         try {
             $req = Request::capture();
+
 
             $this->routing();
 
