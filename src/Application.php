@@ -26,6 +26,7 @@ class Application
      * @var false|string
      */
     private string $appPath;
+    private string $publicPath;
     private Config $config;
     private Env $env;
 
@@ -43,6 +44,11 @@ class Application
 
         if ($appPath === null) $appPath = realpath('../App');
         if (!is_dir($appPath)) throw new \Exception('app dir not found');
+        set_error_handler(function ($errno, $errstr, $errfile, $errline, array $errcontext)
+        {
+            if (0 === error_reporting()) return false;
+            throw new \RuntimeException($errstr . "\r\nFile: " . $errfile . "\r\nLine: " . $errline . "\r\n", 0);
+        });
 
         $this->appPath = Path::format($appPath);
 
@@ -68,6 +74,22 @@ class Application
 
         $this->registerAutoload();
         self::$current = $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getPublicPath(): string
+    {
+        return $this->publicPath;
+    }
+
+    /**
+     * @param string $publicPath
+     */
+    public function setPublicPath(string $publicPath): void
+    {
+        $this->publicPath = rtrim($publicPath, DS);
     }
 
     /**
@@ -168,6 +190,11 @@ class Application
     {
         return $this->path('logs' . ($sub ? DIRECTORY_SEPARATOR . $sub : ''));
     }
+    public function publicPath($sub = null)
+    {
+        if ($sub === null) return $this->publicPath;
+        return $this->publicPath . DIRECTORY_SEPARATOR . ltrim(Path::format($sub), DIRECTORY_SEPARATOR);
+    }
 
     public function viewCachePath(){
         return $this->path('caches/views');
@@ -184,6 +211,7 @@ class Application
     {
         try {
             $req = Request::capture();
+
 
             $this->routing();
 

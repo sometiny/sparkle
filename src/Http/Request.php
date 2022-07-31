@@ -147,6 +147,21 @@ class Request
     {
         return $this->server['REMOTE_ADDR'] ?? null;
     }
+    public function proxy()
+    {
+        return $this->server['HTTP_X_FORWARDED_FOR'] ?? null;
+    }
+    public function hasIp($needle){
+        $ip = $this->ip();
+        if($ip === $needle) return true;
+        $proxy = $this->proxy();
+
+        if(!$proxy) return false;
+
+        $proxy = array_map('trim', explode(',', $proxy));
+
+        return in_array($needle, $proxy);
+    }
     public function port()
     {
         return $this->server['REMOTE_PORT'] ?? null;
@@ -219,6 +234,18 @@ class Request
     public function host()
     {
         return $this->server('HTTP_HOST');
+    }
+    public function schema()
+    {
+        return ($this->server('HTTPS') === 'on'
+            || $this->server('HTTP_FRONT_END_HTTPS') === 'on'
+            || $this->server('HTTP_X_FORWARDED_PROTO') === 'https'
+        ) ? 'https' : 'http';
+    }
+
+    public function url()
+    {
+        return $this->schema() . '://' . $this->server('HTTP_HOST') . $this->path;
     }
 
     /**

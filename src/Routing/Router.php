@@ -193,6 +193,7 @@ class Router
             return null;
         }
 
+
         $staticRoutes = array_merge(self::$static_routes[$method], self::$static_routes['ANY']);
 
         foreach ($staticRoutes as $key => $route) {
@@ -220,7 +221,7 @@ class Router
             $pattern = $path . '/*';
             if (isset($staticRoutes[$pattern])) return $staticRoutes[$pattern];
             $lastIndex = strrpos($path, '/');
-            if ($lastIndex === false) continue;
+            if ($lastIndex === false) break;
             $path = substr($path, 0, $lastIndex);
         }
         if (isset($staticRoutes['*'])) return $staticRoutes['*'];
