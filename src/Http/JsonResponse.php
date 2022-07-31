@@ -50,4 +50,12 @@ class JsonResponse extends Response
         $this->options = $options;
         return $this;
     }
+
+    /**
+     * @return null
+     */
+    public function getContent()
+    {
+        return $this->content;
+    }
 }

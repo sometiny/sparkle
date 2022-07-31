@@ -75,6 +75,7 @@ class Route
             $params = self::getBindParams((new \ReflectionFunction($action))->getParameters(), $req);
             return $action(...$params);
         }
+        if($action instanceof Response) return $action;
         $method = 'index';
         $controller = $action;
         if (is_array($action)) {
