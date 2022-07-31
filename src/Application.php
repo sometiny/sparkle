@@ -51,6 +51,7 @@ class Application
         });
 
         $this->appPath = Path::format($appPath);
+        defined('APP_PATH') or define('APP_PATH', $this->appPath);
 
         $this->env = new Env($this->envPath());
 
@@ -251,7 +252,7 @@ class Application
             if(env('APP_DEBUG') === true) {
                 $response->setBody('<pre>' . (string)$e . '</pre>');
             }else{
-                $response->setBody('<pre>' . $e->getMessage() . '</pre>');
+                $response->setBody('<pre>服务器异常</pre>');
             }
             $this->getResponse($req, $response)->send();
         } finally {
@@ -261,6 +262,7 @@ class Application
     private function getResponse(Request $req, Response $response){
         if($req->accept('application/json') && !($response instanceof JsonResponse)){
             return new JsonResponse([
+                'status_code' => $response->getStatusCode(),
                 'message' => $response->getBody()
             ], $response->getStatusCode());
         }

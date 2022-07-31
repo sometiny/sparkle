@@ -14,9 +14,9 @@
     ],
     "require": {
         "php": ">=7.4",
-        "jazor/core" : ">=1.0.0",
+        "jazor/core" : "dev-master",
    		"jazor/think-orm-for-sparkle": "2.0.x-dev",
-        "jazor/illuminate": ">=1.0.0"
+        "jazor/illuminate": "dev-master"
     },
     "autoload": {
         "psr-4": {
@@ -26,5 +26,5 @@
 	      "./src/helper.php"
 	    ]
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "dev"
 }

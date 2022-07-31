@@ -15,6 +15,13 @@ abstract class Facade
     {
         throw new NotImplementedException();
     }
+    protected static function instance($accessor, $instance = null){
+        if($instance === null){
+            self::$resolved[static::getClass()] = $accessor;
+            return;
+        }
+        self::$resolved[$accessor] = $instance;
+    }
 
     protected static function createInstance($accessor)
     {

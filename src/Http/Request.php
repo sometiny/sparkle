@@ -178,7 +178,7 @@ class Request
     }
     public function header($name = null, $default = null)
     {
-        return $name ? $this->headers[$name] ?? $default : $this->headers;
+        return $name ? $this->headers[strtolower($name)] ?? $default : $this->headers;
     }
 
     public function query($name = null, $default = null)
@@ -246,6 +246,14 @@ class Request
     public function url()
     {
         return $this->schema() . '://' . $this->server('HTTP_HOST') . $this->path;
+    }
+    public function baseURL($path = null)
+    {
+        return $this->schema() . '://' . $this->server('HTTP_HOST') . ($path ?? '/');
+    }
+
+    public function is(...$patterns){
+        return Str::is($patterns, $this->path());
     }
 
     /**

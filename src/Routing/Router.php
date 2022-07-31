@@ -14,12 +14,12 @@ use think\helper\Str;
 /**
  * Class Router
  * @package Sparkle\Routing
- * @method static Route get(string $path, string|array|\Closure $action)
- * @method static Route post(string $path, string|array|\Closure $action)
- * @method static Route put(string $path, string|array|\Closure $action)
- * @method static Route delete(string $path, string|array|\Closure $action)
- * @method static Route head(string $path, string|array|\Closure $action)
- * @method static Route options(string $path, string|array|\Closure $action)
+ * @method static Route get(string|array $path, string|array|\Closure $action)
+ * @method static Route post(string|array $path, string|array|\Closure $action)
+ * @method static Route put(string|array $path, string|array|\Closure $action)
+ * @method static Route delete(string|array $path, string|array|\Closure $action)
+ * @method static Route head(string|array $path, string|array|\Closure $action)
+ * @method static Route options(string|array $path, string|array|\Closure $action)
  */
 
 class Router
@@ -88,7 +88,7 @@ class Router
         array_pop(self::$groupStack);
     }
 
-    private static function addRoute($method, $path, $action)
+    private static function addRoute($method, $path, $action, $options = null)
     {
         $group = self::getGroup();
 
@@ -193,6 +193,7 @@ class Router
             return null;
         }
 
+        if(empty($path)) $path = '/';
 
         $staticRoutes = array_merge(self::$static_routes[$method], self::$static_routes['ANY']);
 
@@ -261,6 +262,14 @@ class Router
     public static function __callStatic($name, $arguments)
     {
         if (!in_array($name, ['head', 'get', 'post', 'put', 'delete', 'options', 'any'])) throw new NotSupportedException();
+        if (count($arguments) > 0 && is_array($arguments[0])) {
+            $paths = $arguments[0];
+            foreach ($paths as $path) {
+                $arguments[0] = $path;
+                self::addRoute(strtoupper($name), ...$arguments);
+            }
+            return null;
+        }
         return self::addRoute(strtoupper($name), ...$arguments);
     }
 

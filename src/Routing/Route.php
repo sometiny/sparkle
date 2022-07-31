@@ -142,28 +142,25 @@ class Route
     private static function getTypeValue(\ReflectionNamedType $type, ?string $value){
 
         $typeName = $type->getName();
+        if ($typeName === Request::class) {
+            return \request();
+        }
+        if($value === null && !$type->allowsNull()){
+            throw new \Exception('null not allowed');
+        }
+
         if($type->isBuiltin()){
-            if($value === null && !$type->allowsNull()){
-                throw new \Exception('null not allowed');
-            }
             switch ($typeName){
                 case 'int':
-                    return intval($value);
+                    return ($value === null || $value === '') ? null : intval($value);
                 case 'float':
-                    return floatval($value);
+                    return ($value === null || $value === '') ? null : floatval($value);
                 case 'bool':
-                    return !($value === null || $value === 'false' || $value === '0');
+                    return !($value === null || $value === 'false' || $value === '0' || $value === '');
             }
             return $value;
         }
 
-        if ($typeName === Request::class) {
-            return \request();
-        }
-
-        if($value === null && !$type->allowsNull()){
-            throw new \Exception('null not allowed');
-        }
         return null;
     }
 

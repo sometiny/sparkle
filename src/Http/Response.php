@@ -19,10 +19,11 @@ class Response extends Headers
      * Response constructor.
      * @param int $statusCode
      * @param null $body
+     * @param string $contentType
      */
-    public function __construct(int $statusCode = 200, $body = null)
+    public function __construct(int $statusCode = 200, $body = null, string $contentType = 'text/html')
     {
-        $this->setHeader('Content-Type', 'text/html');
+        $this->setHeader('Content-Type', $contentType);
         $this->statusCode = $statusCode;
         $this->body = $body;
     }

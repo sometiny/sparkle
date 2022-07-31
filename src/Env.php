@@ -9,6 +9,7 @@ use Jazor\NotSupportedException;
 class Env extends Config
 {
 
+    public static $SELF = null;
     public function __construct($envFile)
     {
         parent::__construct();
@@ -19,6 +20,7 @@ class Env extends Config
         $config = self::parse($config);
 
         $this->configs($config);
+        self::$SELF = $this;
     }
 
     public function scanDirectory($dir)

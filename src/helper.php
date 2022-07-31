@@ -13,13 +13,12 @@ if(!function_exists('response')) {
     /**
      * @param string $contents
      * @param int $statusCode
+     * @param string $contentType
      * @return Response
      */
-    function response(string $contents, int $statusCode = 200): Response
+    function response(string $contents, int $statusCode = 200, string $contentType = 'text/html'): Response
     {
-        $response = new Response($statusCode);
-        $response->setBody($contents);
-        return $response;
+        return new Response($statusCode, $contents, $contentType);
     }
 
     /**
@@ -104,9 +103,9 @@ if(!function_exists('response')) {
     function env($name = null, $default = null)
     {
         if($name !== null){
-            return app()->env()->get($name, $default);
+            return \Sparkle\Env::$SELF->get($name, $default);
         }
-        return app()->env();
+        return \Sparkle\Env::$SELF;
     }
 
     /**
