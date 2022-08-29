@@ -126,7 +126,7 @@ class Route
 
             $value = $req->input($name);
             if ($type !== null) {
-                $value = self::getTypeValue($type, $value);
+                $value = is_array($value) ? $value : self::getTypeValue($type, $value);
             }
             $result[] = $value;
         }
@@ -146,8 +146,8 @@ class Route
         $typeName = $type->getName();
 
         if ($type->isBuiltin()) {
-            if ($value === null && !$type->allowsNull()) {
-                throw new \Exception('null not allowed');
+            if (($value === null || $value === '') && !$type->allowsNull()) {
+                throw new \Exception('null value for \'' . $typeName . '\' is not allowed');
             }
             switch ($typeName) {
                 case 'int':
