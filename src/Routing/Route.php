@@ -5,6 +5,7 @@ namespace Sparkle\Routing;
 
 
 use Jazor\Console;
+use Sparkle\Http\HttpException;
 use Sparkle\Http\Request;
 use Sparkle\Http\Response;
 use think\Model;
@@ -143,14 +144,11 @@ class Route
     {
 
         $typeName = $type->getName();
-        if ($typeName === Request::class) {
-            return \request();
-        }
-        if ($value === null && !$type->allowsNull()) {
-            throw new \Exception('null not allowed');
-        }
 
         if ($type->isBuiltin()) {
+            if ($value === null && !$type->allowsNull()) {
+                throw new \Exception('null not allowed');
+            }
             switch ($typeName) {
                 case 'int':
                     return ($value === null || $value === '') ? null : intval($value);
@@ -162,8 +160,41 @@ class Route
             }
             return $value;
         }
+        if (!class_exists($typeName)) throw new \Exception('class \'' . $typeName . '\' not exists');
+        if($typeName == Request::class) return \request();
+
+        $parents = array_values(class_parents($typeName));
+
+        if (in_array(Request::class, $parents)) return \request()->cloneTo($typeName);
+
+        if(in_array(Model::class, $parents)) return self::fillModel($typeName, $value);
+
+
 
         return null;
+    }
+
+    private static function fillModel($typeName, $keyValue){
+
+        /**
+         * @var Model $model
+         */
+        $model = new $typeName();
+
+        if($keyValue === null) return $model;
+
+
+        $pk = $model->getPk();
+        if(empty($pk)) throw new HttpException(404, 'Model \'' . $typeName . '\', pk not found');
+
+        $pk = (array)$pk;
+
+        $row = $model->newQuery()->where($pk[0], $keyValue)->find();
+        if(!$row){
+            throw new HttpException(404, 'Model \'' . $typeName . '\' not found');
+        }
+        $row->fill(\request()->input());
+        return $row;
     }
 
     /**

@@ -40,6 +40,10 @@ class Request
         $this->headers = $headers;
     }
 
+    public function cloneTo($requestClass){
+        return new $requestClass($this->method, $this->path, $this->query, $this->post, $this->files, $this->headers, $this->server, $this->cookie, $this->session);
+    }
+
     public static function capture()
     {
         unset($_SERVER['PATH']);
@@ -190,12 +194,12 @@ class Request
         return $name ? $this->params[$name] ?? $default : $this->params;
     }
 
-    public function input($name, $default = null){
-        if(!$name) {
-            return $this->query[$name]
-                + $this->post[$name]
-                + $this->params[$name]
-                + $this->files[$name];
+    public function input($name = null, $default = null){
+        if($name === null) {
+            return $this->query
+                + $this->post
+                + $this->params
+                + $this->files;
         }
         return $this->query[$name]
             ?? $this->post[$name]
