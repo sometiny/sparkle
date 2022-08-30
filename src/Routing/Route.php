@@ -98,13 +98,13 @@ class Route
         $params = self::getBindParams((new \ReflectionClass($instance))->getMethod($method)->getParameters(), $req);
 
         if(method_exists($instance, '__beforeInvoke')){
-            $instance->__beforeInvoke($method);
+            $instance->__beforeInvoke($method, $req);
         }
 
         $response = $instance->{$method}(...$params);
 
         if(method_exists($instance, '__afterInvoke')){
-            $instance->__afterInvoke($method, $response);
+            $instance->__afterInvoke($method, $req, $response);
         }
 
         return $response;
