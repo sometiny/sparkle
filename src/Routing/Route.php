@@ -30,15 +30,16 @@ class Route
         $this->path = $path;
         $this->action = $action;
         $this->group = $group;
-        if($group != null){
+        if ($group != null) {
             $this->middleware($group->getMiddleware());
         }
     }
 
-    public function middleware($middleware){
+    public function middleware($middleware)
+    {
         $middleware = (array)$middleware;
-        foreach ($middleware as $value){
-            if(is_string($value)){
+        foreach ($middleware as $value) {
+            if (is_string($value)) {
                 $this->middleware[] = app()->getMiddleware($value);
                 continue;
             }
@@ -58,15 +59,29 @@ class Route
         return $this;
     }
 
-    public function checkConditions($params){
+    public function checkConditions($params)
+    {
         $paramNames = array_column($this->paramNames, 'required', 'name');
-        foreach ($params as $key => $value){
-            if(!isset($this->conditions[$key]) || ($value === null && !$paramNames[$key])) continue;
-            if(!preg_match(sprintf('/%s/', $this->conditions[$key]), $value)){
+        foreach ($params as $key => $value) {
+            if (!isset($this->conditions[$key]) || ($value === null && !$paramNames[$key])) continue;
+            if (!preg_match(sprintf('/%s/', $this->conditions[$key]), $value)) {
                 return false;
             }
         }
         return true;
+    }
+
+    private function getController($action){
+        if (is_array($action)) return $action;
+
+        $method = 'index';
+        $controller = $action;
+        $idx = strpos($action, '@');
+        if ($idx !== false) {
+            $method = ltrim(substr($action, $idx), '@');
+            $controller = substr($action, 0, $idx);
+        }
+        return [$controller, $method];
     }
 
     public function execute(Request $req)
@@ -76,34 +91,26 @@ class Route
             $params = self::getBindParams((new \ReflectionFunction($action))->getParameters(), $req);
             return $action(...$params);
         }
-        if($action instanceof Response) return $action;
-        $method = 'index';
-        $controller = $action;
-        if (is_array($action)) {
-            $method = $action[1];
-            $controller = $action[0];
-        } else {
-            $idx = strpos($action, '@');
-            if ($idx !== false) {
-                $method = ltrim(substr($action, $idx), '@');
-                $controller = substr($action, 0, $idx);
-            }
-        }
+
+        if ($action instanceof Response) return $action;
+
+        list($controller, $method) = $this->getController($action);
+
+        if (!class_exists($controller)) return new Response(404, 'Controller Not Found');
 
         $instance = new $controller();
-        if(!method_exists($instance, $method)){
-            return new Response(404, 'Not Found');
-        }
+        if (!method_exists($instance, $method)) return new Response(404, 'Method Not Found');
+
 
         $params = self::getBindParams((new \ReflectionClass($instance))->getMethod($method)->getParameters(), $req);
 
-        if(method_exists($instance, '__beforeInvoke')){
+        if (method_exists($instance, '__beforeInvoke')) {
             $instance->__beforeInvoke($method, $req);
         }
 
         $response = $instance->{$method}(...$params);
 
-        if(method_exists($instance, '__afterInvoke')){
+        if (method_exists($instance, '__afterInvoke')) {
             $instance->__afterInvoke($method, $req, $response);
         }
 
@@ -126,7 +133,7 @@ class Route
 
             $value = $req->input($name);
             if ($type !== null) {
-                $value = is_array($value) ? $value : self::getTypeValue($type, $value);
+                $value = self::getTypeValue($type, $value);
             }
             $result[] = $value;
         }
@@ -136,11 +143,11 @@ class Route
 
     /**
      * @param \ReflectionNamedType $type
-     * @param string|null $value
+     * @param string|array|null $value
      * @return bool|float|int|Request|string|null
      * @throws \Exception
      */
-    private static function getTypeValue(\ReflectionNamedType $type, ?string $value)
+    private static function getTypeValue(\ReflectionNamedType $type, $value)
     {
 
         $typeName = $type->getName();
@@ -160,37 +167,37 @@ class Route
             }
             return $value;
         }
+
         if (!class_exists($typeName)) throw new \Exception('class \'' . $typeName . '\' not exists');
-        if($typeName == Request::class) return \request();
+        if ($typeName == Request::class) return \request();
 
         $parents = array_values(class_parents($typeName));
 
         if (in_array(Request::class, $parents)) return \request()->cloneTo($typeName);
 
-        if(in_array(Model::class, $parents)) return self::fillModel($typeName, $value);
-
-
+        if (in_array(Model::class, $parents)) return self::fillModel($typeName, $value);
 
         return null;
     }
 
-    private static function fillModel($typeName, $keyValue){
+    private static function fillModel($typeName, $keyValue)
+    {
 
         /**
          * @var Model $model
          */
         $model = new $typeName();
 
-        if($keyValue === null) return $model;
+        if ($keyValue === null) return $model;
 
 
         $pk = $model->getPk();
-        if(empty($pk)) throw new HttpException(404, 'Model \'' . $typeName . '\', pk not found');
+        if (empty($pk)) throw new HttpException(404, 'Model \'' . $typeName . '\', pk not found');
 
         $pk = (array)$pk;
 
         $row = $model->newQuery()->where($pk[0], $keyValue)->find();
-        if(!$row){
+        if (!$row) {
             throw new HttpException(404, 'Model \'' . $typeName . '\' not found');
         }
         $row->fill(\request()->input());
@@ -251,7 +258,7 @@ class Route
      */
     public function name($name = null)
     {
-        if($name === null) return $this->name;
+        if ($name === null) return $this->name;
         $this->name = $name;
         return $this;
     }
