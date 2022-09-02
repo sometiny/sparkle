@@ -109,7 +109,15 @@ class Application
      * @param $name
      * @param $class
      */
-    protected function registerMiddleware($name, $class){
+    protected function registerMiddleware($name, $class = null){
+        if(is_array($name)){
+            foreach ($name as $n => $value){
+                if(empty($n) || empty($value)) throw new \Exception('invalid middleware name or value');
+                $this->middleware[$n] = $value;
+            }
+            return;
+        }
+        if(empty($name) || empty($class)) throw new \Exception('invalid middleware name or value');
         $this->middleware[$name] = $class;
     }
 

@@ -156,4 +156,14 @@ class Config implements \ArrayAccess
             $this->configs[$key] = $value;
         }
     }
+
+    public function __get($name)
+    {
+        return $this->get($name);
+    }
+
+    public function __set($name, $value)
+    {
+        $this->set($name, $value);
+    }
 }
