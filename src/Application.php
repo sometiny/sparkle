@@ -57,9 +57,13 @@ class Application
 
         $this->config = (new Config())->scanDirectory($this->configPath());
 
+        $dbConfig = $this->config->get('db', null);
+        $appConfig = $this->config->get('app', null);
 
-        Db::setConfig($this->config->get('db', null));
-        Db::setLog(new File($this->logsPath('db')));
+        if($dbConfig) {
+            Db::setConfig($dbConfig);
+            if(isset($dbConfig['logger']) && $dbConfig['logger'] === true) Db::setLog(new File($this->logsPath('db')));
+        }
 
         Paginator::currentPageResolver(function ($var){
             return intval(\request()->query($var, 1));
@@ -69,9 +73,11 @@ class Application
             return new \Sparkle\Paginator($items, $listRows, $currentPage, $total, $simple, $options);
         });
 
-        View::setCachePath($this->viewCachePath());
-        View::addViewLocation($this->viewDefaultPath());
-        View::register();
+        if($appConfig && (!isset($appConfig['view']) || $appConfig['view'] !== false)) {
+            View::setCachePath($this->viewCachePath());
+            View::addViewLocation($this->viewDefaultPath());
+            View::register();
+        }
 
         $this->registerAutoload();
         self::$current = $this;
