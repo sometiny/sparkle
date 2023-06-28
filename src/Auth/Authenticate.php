@@ -27,7 +27,7 @@ class Authenticate
         if (!$authenticatable) {
             throw new HttpException(400, 'credentials is invalid');
         }
-        if (password_verify($password, $authenticatable->getAuthPassword())) {
+        if (!password_verify($password, $authenticatable->getAuthPassword())) {
             throw new HttpException(403, 'password is invalid');
         }
         return $authenticatable;

@@ -57,13 +57,9 @@ class Application
 
         $this->config = (new Config())->scanDirectory($this->configPath());
 
-        $dbConfig = $this->config->get('db', null);
-        $appConfig = $this->config->get('app', null);
 
-        if($dbConfig) {
-            Db::setConfig($dbConfig);
-            if(isset($dbConfig['logger']) && $dbConfig['logger'] === true) Db::setLog(new File($this->logsPath('db')));
-        }
+        Db::setConfig($this->config->get('db', null));
+        Db::setLog(new File($this->logsPath('db')));
 
         Paginator::currentPageResolver(function ($var){
             return intval(\request()->query($var, 1));
@@ -73,11 +69,9 @@ class Application
             return new \Sparkle\Paginator($items, $listRows, $currentPage, $total, $simple, $options);
         });
 
-        if($appConfig && (!isset($appConfig['view']) || $appConfig['view'] !== false)) {
-            View::setCachePath($this->viewCachePath());
-            View::addViewLocation($this->viewDefaultPath());
-            View::register();
-        }
+        View::setCachePath($this->viewCachePath());
+        View::addViewLocation($this->viewDefaultPath());
+        View::register();
 
         $this->registerAutoload();
         self::$current = $this;
@@ -257,8 +251,7 @@ class Application
             $response->setBody('unknown response');
             $response->send();
         }catch (HttpException $e){
-            $response = $this->getResponse($req, new Response($e->getStatusCode(), $e->getMessage()));
-            $response->send();
+            (new Response($e->getStatusCode(), $e->getMessage()))->send();
         }catch (HttpResponseException $e){
             $e->getResponse()->send();
         }catch (\Throwable $e){
@@ -268,7 +261,7 @@ class Application
             }else{
                 $response->setBody('<pre>服务器异常</pre>');
             }
-            $this->getResponse($req, $response)->send();
+            $response->send();
         } finally {
             spl_autoload_unregister(array($this, 'loadClass'));
         }
