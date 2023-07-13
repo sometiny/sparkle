@@ -61,6 +61,9 @@ class Request
             $path = substr($url, 0, $idx);
             $queryString = substr($url, $idx + 1);
         }
+
+        $path = rtrim($path, '/');
+
         parse_str($queryString, $query);
         if (!$query) $query = $_GET;
 
