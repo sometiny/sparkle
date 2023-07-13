@@ -48,7 +48,7 @@ class Request
     {
         unset($_SERVER['PATH']);
 
-        if(!isset($_SERVER['PATH_INFO']) || empty($_SERVER['PATH_INFO'])){
+        if(empty($_SERVER['PATH_INFO'])) {
             unset($_SERVER['PATH_INFO']);
         }
 
