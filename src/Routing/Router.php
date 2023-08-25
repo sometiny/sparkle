@@ -92,6 +92,8 @@ class Router
     {
         $group = self::getGroup();
 
+        if($path === '*') $path = '{*}';
+
         $path = $group ? $group->makePath($path) : $path;
         if ($path != '/' && $path[strlen($path) - 1] == '/') {
             $path = substr($path, 0, strlen($path) - 1);
@@ -129,6 +131,10 @@ class Router
                 $result[] = sprintf('%s\/(?<%s>[^\/]+)%s', $match[2] ? '(?:' : '', $match[1], $match[2] ? ')?' : '');
                 $paramNames[] = ['name' => $match[1], 'required' => empty($match[2])];
                 continue;
+            }
+            if($part === '{*}'){
+                $result[] = '(\/(.*))?';
+                break;
             }
             if (strpos($part, '{') !== false) {
 
