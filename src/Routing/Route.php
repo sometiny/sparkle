@@ -133,7 +133,11 @@ class Route
 
             $value = $req->input($name);
             if ($type !== null) {
-                $value = self::getTypeValue($type, $value);
+                if($parameter instanceof \ReflectionParameter && $value === null && $parameter->isOptional()){
+                    $result[] = $parameter->getDefaultValue();
+                    break;
+                }
+                $value = self::getTypeValue($type, $value, $name);
             }
             $result[] = $value;
         }
@@ -147,14 +151,15 @@ class Route
      * @return bool|float|int|Request|string|null
      * @throws \Exception
      */
-    private static function getTypeValue(\ReflectionNamedType $type, $value)
+    private static function getTypeValue(\ReflectionNamedType $type, $value, $name)
     {
 
         $typeName = $type->getName();
 
         if ($type->isBuiltin()) {
-            if (($value === null || $value === '') && !$type->allowsNull()) {
-                throw new \Exception('null value for \'' . $typeName . '\' is not allowed');
+            if ($value === null && !$type->allowsNull()) {
+
+                throw new \Exception('null value for \'' . $name . '\'(' . $typeName . ') is not allowed');
             }
             switch ($typeName) {
                 case 'int':
