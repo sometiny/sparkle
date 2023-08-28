@@ -57,9 +57,26 @@ class Application
 
         $this->config = (new Config())->scanDirectory($this->configPath());
 
+        $this->setupConnections();
+        Paginator::currentPageResolver(function ($var){
+            return intval(\request()->query($var, 1));
+        });
+
+        Paginator::maker(function ($items, int $listRows, int $currentPage = 1, int $total = null, bool $simple = false, array $options = []){
+            return new \Sparkle\Paginator($items, $listRows, $currentPage, $total, $simple, $options);
+        });
+
+        View::setCachePath($this->viewCachePath());
+        View::addViewLocation($this->viewDefaultPath());
+        View::register();
+
+        $this->registerAutoload();
+        self::$current = $this;
+    }
+
+    private function setupConnections(){
+
         $dbConfig = $this->config->get('db', null);
-
-
 
         if(!empty($dbConfig)) {
 
@@ -88,20 +105,6 @@ class Application
         }
         Db::setLog(new File($this->logsPath('db')));
 
-        Paginator::currentPageResolver(function ($var){
-            return intval(\request()->query($var, 1));
-        });
-
-        Paginator::maker(function ($items, int $listRows, int $currentPage = 1, int $total = null, bool $simple = false, array $options = []){
-            return new \Sparkle\Paginator($items, $listRows, $currentPage, $total, $simple, $options);
-        });
-
-        View::setCachePath($this->viewCachePath());
-        View::addViewLocation($this->viewDefaultPath());
-        View::register();
-
-        $this->registerAutoload();
-        self::$current = $this;
     }
 
     /**
