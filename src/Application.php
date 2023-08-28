@@ -57,8 +57,35 @@ class Application
 
         $this->config = (new Config())->scanDirectory($this->configPath());
 
+        $dbConfig = $this->config->get('db', null);
 
-        Db::setConfig($this->config->get('db', null));
+
+
+        if(!empty($dbConfig)) {
+
+            $connections = $dbConfig['connections'] ?? [];
+            $connectionSetting = $dbConfig['setting'] ?? null;
+
+            if($connectionSetting) {
+                foreach ($connections as &$connection) {
+
+                    if (isset($connection['@location'])) {
+
+                        $global_config = $connectionSetting[$connection['@location']] ?? null;
+
+                        if (!empty($global_config)) $connection = array_merge($global_config, $connection);
+
+                        unset($connection['@location']);
+                    }
+                }
+            }
+
+            $dbConfig['connections'] = $connections;
+            if($connectionSetting) unset($dbConfig['setting']);
+
+            Db::setConfig($dbConfig);
+
+        }
         Db::setLog(new File($this->logsPath('db')));
 
         Paginator::currentPageResolver(function ($var){
