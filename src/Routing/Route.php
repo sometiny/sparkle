@@ -201,7 +201,7 @@ class Route
 
         $pk = (array)$pk;
 
-        $row = $model->newQuery()->where($pk[0], $keyValue)->find();
+        $row = $model->db()->where($pk[0], $keyValue)->find();
         if (!$row) {
             throw new HttpException(404, 'Model \'' . $typeName . '\' not found');
         }

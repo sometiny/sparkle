@@ -10,9 +10,32 @@ use Sparkle\Http\HttpException;
 class Authenticate
 {
 
+    private static $users = [];
+
+    /**
+     * 设置登录状态
+     * @param $authenticate
+     * @param $class
+     * @return void
+     */
+    public static function login($authenticate, $class = null){
+        if(empty($class)) $class = get_class($authenticate);
+
+        static::$users[$class] = $authenticate;
+    }
+
+    /**
+     * @param $class
+     * @return mixed|null
+     */
+    public static function user($class){
+         return static::$users[$class] ?? null;
+    }
+
     /**
      * @param $credentials
      * @param $class
+     * @return mixed
      * @throws HttpException
      */
     public static function auth($credentials, $class)
@@ -23,14 +46,14 @@ class Authenticate
             throw new HttpException(400, 'password required');
         }
 
-        $authenticatable = $class::where($credentials)->find();
-        if (!$authenticatable) {
+        $authenticate = $class::where($credentials)->find();
+        if (!$authenticate) {
             throw new HttpException(400, 'credentials is invalid');
         }
-        if (!password_verify($password, $authenticatable->getAuthPassword())) {
+        if (!password_verify($password, $authenticate->getAuthPassword())) {
             throw new HttpException(403, 'password is invalid');
         }
-        return $authenticatable;
+        return $authenticate;
     }
 
     /**

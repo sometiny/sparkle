@@ -58,6 +58,7 @@ class Application
         $this->config = (new Config())->scanDirectory($this->configPath());
 
         $this->setupConnections();
+
         Paginator::currentPageResolver(function ($var){
             return intval(\request()->query($var, 1));
         });
@@ -161,7 +162,7 @@ class Application
     public function getMiddleware($middleware){
         [$name, $parameters] = array_pad(explode(':', $middleware, 2), 2, []);
         if(!is_array($parameters)){
-            $parameters = [$parameters];
+            $parameters = array_filter(explode(',' , $parameters));
         }
         $name = $this->middleware[$name] ?? $name;
 

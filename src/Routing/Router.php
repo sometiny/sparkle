@@ -43,10 +43,11 @@ class Router
         'ANY' => [],
     ];
 
-    private const ACTION_LIST = 1;
-    private const ACTION_SAVE = 2;
-    private const ACTION_SHOW = 4;
-    private const ACTION_DELETE = 8;
+    public const ACTION_LIST = 1;
+    public const ACTION_SAVE = 2;
+    public const ACTION_SHOW = 4;
+    public const ACTION_DELETE = 8;
+    public const ACTION_UPDATE = 16;
 
     private static array $groupStack = [];
 
@@ -291,5 +292,24 @@ class Router
         if( $allowedAction & static::ACTION_SAVE ) Router::post($name . '/{id?}', $controllerName . '@save')->where('id', '[0-9]+');
         if( $allowedAction & static::ACTION_SHOW ) Router::get($name . '/{id}', $controllerName . '@show')->where('id', '[0-9]+');
         if( $allowedAction & static::ACTION_DELETE ) Router::delete($name . '/{id}', $controllerName . '@delete')->where('id', '[0-9]+');
+    }
+
+    /**
+     * 生成路由组
+     * @param $name
+     * @param null $path
+     * @param int $allowedAction
+     * @param string $whereId
+     * @return void
+     */
+    public static function mixin2($name, $path = null, $allowedAction = 31, $whereId = '[0-9]+')
+    {
+        $controllerName = Str::studly($name) . 'Controller';
+        if(empty($path)) $path = $name;
+        if( $allowedAction & static::ACTION_LIST ) Router::get($path, $controllerName . '@index');
+        if( $allowedAction & static::ACTION_SAVE ) Router::post($path, $controllerName . '@create');
+        if( $allowedAction & static::ACTION_UPDATE ) Router::put($path . '/{id}', $controllerName . '@update')->where('id', $whereId);
+        if( $allowedAction & static::ACTION_SHOW ) Router::get($path . '/{id}', $controllerName . '@show')->where('id', $whereId);
+        if( $allowedAction & static::ACTION_DELETE ) Router::delete($path . '/{id}', $controllerName . '@destroy')->where('id', $whereId);
     }
 }
