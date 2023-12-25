@@ -86,6 +86,7 @@ class Request
                 break;
             case 'multipart/form-data':
                 $files = self::getFiles($_FILES);
+                $input = $_POST;
                 break;
         }
         $headers = self::getHeaders($_SERVER);
