@@ -30,7 +30,7 @@ class Response extends Headers
 
     protected function sendHeader(){
         $header = HttpStatus::getStatusHeader($this->statusCode);
-        header($header);
+        header($header, true, $this->statusCode);
 
         $headers = $this->getAllHeadersArray();
         foreach ($headers as $header){

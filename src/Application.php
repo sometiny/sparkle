@@ -286,11 +286,11 @@ class Application
         }catch (HttpResponseException $e){
             $e->getResponse()->send();
         }catch (\Throwable $e){
-            $response = new Response(500);
+            $response = new Response(500, null, 'text/plain;charset=utf-8');
             if(env('APP_DEBUG') === true) {
-                $response->setBody('<pre>' . (string)$e . '</pre>');
+                $response->setBody((string)$e);
             }else{
-                $response->setBody('<pre>服务器异常</pre>');
+                $response->setBody('服务器异常');
             }
             $response->send();
         } finally {
