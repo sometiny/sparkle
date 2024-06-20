@@ -16,6 +16,7 @@ use Sparkle\Routing\Router;
 use think\contract\Arrayable;
 use think\contract\Jsonable;
 use think\facade\Db;
+use think\Model;
 use think\Paginator;
 
 class Application
@@ -282,7 +283,8 @@ class Application
             $response->setBody('unknown response');
             $response->send();
         }catch (HttpException $e){
-            (new Response($e->getStatusCode(), $e->getMessage()))->send();
+            $response = $this->getResponse($req, new Response($e->getStatusCode(), $e->getMessage()));
+            $response->send();
         }catch (HttpResponseException $e){
             $e->getResponse()->send();
         }catch (\Throwable $e){
@@ -290,9 +292,9 @@ class Application
             if(env('APP_DEBUG') === true) {
                 $response->setBody((string)$e);
             }else{
-                $response->setBody('服务器异常');
+                $response->setBody($e->getMessage());
             }
-            $response->send();
+            $this->getResponse($req, $response)->send();
         } finally {
             spl_autoload_unregister(array($this, 'loadClass'));
         }
