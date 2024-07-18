@@ -163,12 +163,12 @@ class Route
             }
             switch ($typeName) {
                 case 'int':
-                    return ($value === null || $value === '') ? null : intval($value);
+                    return is_integer($value) ? $value : (($value === null || $value === '') ? null : intval($value));
                 case 'float':
-                    return ($value === null || $value === '') ? null : floatval($value);
+                    return is_float($value) ? $value : ( ($value === null || $value === '') ? null : floatval($value));
                 case 'bool':
-                    return ($value === null || $value === '') ? null
-                        : !($value === 'false' || $value === '0' || $value === 'False' || $value === 'FALSE');
+                    return is_bool($value) ? $value : (($value === null || $value === '') ? null
+                        : !($value === 'false' || $value === '0' || $value === 'False' || $value === 'FALSE'));
             }
             return $value;
         }
