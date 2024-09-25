@@ -294,6 +294,10 @@ class Application
             }else{
                 $response->setBody($e->getMessage());
             }
+            if(!isset($req)) {
+                $response->send();
+                return;
+            }
             $this->getResponse($req, $response)->send();
         } finally {
             spl_autoload_unregister(array($this, 'loadClass'));

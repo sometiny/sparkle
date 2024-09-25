@@ -78,7 +78,7 @@ class Request
         switch ($contentType) {
             case 'application/json':
                 $inputRaw = file_get_contents('php://input');
-                $input = json_decode($inputRaw, true);
+                $input = json_decode($inputRaw, true) ?? [];
                 break;
             case 'application/x-www-form-urlencoded':
                 $inputRaw = file_get_contents('php://input');
