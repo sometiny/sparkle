@@ -98,6 +98,9 @@ class File implements \JsonSerializable
         return $this->error === self::UPLOAD_ERR_OK;
     }
 
+    public function tempName(){
+        return $this->tmp_name;
+    }
     public function moveTo($dest){
         return move_uploaded_file($this->tmp_name, $dest);
     }

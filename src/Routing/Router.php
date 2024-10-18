@@ -14,12 +14,18 @@ use think\helper\Str;
 /**
  * Class Router
  * @package Sparkle\Routing
- * @method static Route get(string|array $path, string|array|\Closure $action)
- * @method static Route post(string|array $path, string|array|\Closure $action)
- * @method static Route put(string|array $path, string|array|\Closure $action)
- * @method static Route delete(string|array $path, string|array|\Closure $action)
- * @method static Route head(string|array $path, string|array|\Closure $action)
- * @method static Route options(string|array $path, string|array|\Closure $action)
+ * @method static Route get(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route post(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route put(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route delete(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route head(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route options(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route get_regex(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route post_regex(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route put_regex(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route delete_regex(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route head_regex(string|array $path, string|array|\Closure $action, $options = null)
+ * @method static Route options_regex(string|array $path, string|array|\Closure $action, $options = null)
  */
 
 class Router
@@ -91,7 +97,23 @@ class Router
 
     private static function addRoute($method, $path, $action, $options = null)
     {
+        $isRegex = !empty($options) && isset($options['regexp']) && $options['regexp'] === true;
+
+        if(Str::endsWith($method, '_REGEX')) {
+            $isRegex = true;
+            $method = substr($method, 0, -6);
+        }
+
         $group = self::getGroup();
+
+        $action = $group ? $group->makeAction($action) : $action;
+
+        if($isRegex){
+
+            $route = new Route($method, $path, $action, $group);
+            self::$routes[$method][$path] = $route;
+            return $route;
+        }
 
         if($path === '*') $path = '{*}';
 
@@ -99,8 +121,6 @@ class Router
         if ($path != '/' && $path[strlen($path) - 1] == '/') {
             $path = substr($path, 0, strlen($path) - 1);
         }
-
-        $action = $group ? $group->makeAction($action) : $action;
 
         if (strpos($path, '{') === false) {
             $route = new Route($method, $path, $action, $group);
@@ -127,7 +147,7 @@ class Router
         $result = [];
         $paramNames = [];
         foreach ($parts as $part) {
-            $success = preg_match('/^{(\w+)(\?)?}$/', $part, $match, PREG_UNMATCHED_AS_NULL);
+            $success = preg_match('/^{([\w\-]+)(\?)?}$/', $part, $match, PREG_UNMATCHED_AS_NULL);
             if ($success) {
                 $result[] = sprintf('%s\/(?<%s>[^\/]+)%s', $match[2] ? '(?:' : '', $match[1], $match[2] ? ')?' : '');
                 $paramNames[] = ['name' => $match[1], 'required' => empty($match[2])];
@@ -155,7 +175,7 @@ class Router
 
         $result = ['\/'];
         while ($index < $length) {
-            $success = preg_match('/{(\w+)}/', $part, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $index);
+            $success = preg_match('/{([\w\-]+)}/', $part, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $index);
             if (!$success) {
                 break;
             }
@@ -166,7 +186,7 @@ class Router
             $index = $findIndex + strlen($match[0][0]);
 
             $paramName = $match[1][0];
-            $result[] = sprintf('(?<%s>\w+?)', $paramName);
+            $result[] = sprintf('(?<%s>[\w\-]+?)', $paramName);
             $paramNames[] = ['name' => $paramName, 'required' => true];;
         }
         if ($index < $length) {
@@ -204,17 +224,18 @@ class Router
 
         $staticRoutes = array_merge(self::$static_routes[$method], self::$static_routes['ANY']);
 
-        foreach ($staticRoutes as $key => $route) {
-            if ($key === $path) {
-                return $route;
-            }
-        }
+        if(isset($staticRoutes[$path])) return $staticRoutes[$path];
+
         $routes = array_merge(self::$routes[$method], self::$routes['ANY']);
 
         foreach ($routes as $key => $route) {
             if (!preg_match($key, $path, $match)) continue;
 
             $paramNames = $route->getParamNames();
+            if(empty($paramNames)){
+                $req->setParams($match);
+                return $route;
+            }
             $params = [];
             foreach ($paramNames as $param) {
                 $params[$param['name']] = $match[$param['name']] ?? null;
@@ -268,7 +289,10 @@ class Router
 
     public static function __callStatic($name, $arguments)
     {
-        if (!in_array($name, ['head', 'get', 'post', 'put', 'delete', 'options', 'any'])) throw new NotSupportedException();
+        if (!in_array($name, [
+            'head', 'get', 'post', 'put', 'delete', 'options', 'any',
+            'head_regex', 'get_regex', 'post_regex', 'put_regex', 'delete_regex', 'options_regex', 'any_regex'])) throw new NotSupportedException();
+
         if (count($arguments) > 0 && is_array($arguments[0])) {
             $paths = $arguments[0];
             foreach ($paths as $path) {
