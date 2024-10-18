@@ -97,7 +97,7 @@ class Router
 
     private static function addRoute($method, $path, $action, $options = null)
     {
-        $isRegex = !empty($options) && isset($options['regexp']) && $options['regexp'] === true;
+        $isRegex = $path[0] === '#' || !empty($options) && isset($options['regexp']) && $options['regexp'] === true;
 
         if(Str::endsWith($method, '_REGEX')) {
             $isRegex = true;
