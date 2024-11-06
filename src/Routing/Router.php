@@ -20,12 +20,6 @@ use think\helper\Str;
  * @method static Route delete(string|array $path, string|array|\Closure $action, $options = null)
  * @method static Route head(string|array $path, string|array|\Closure $action, $options = null)
  * @method static Route options(string|array $path, string|array|\Closure $action, $options = null)
- * @method static Route get_regex(string|array $path, string|array|\Closure $action, $options = null)
- * @method static Route post_regex(string|array $path, string|array|\Closure $action, $options = null)
- * @method static Route put_regex(string|array $path, string|array|\Closure $action, $options = null)
- * @method static Route delete_regex(string|array $path, string|array|\Closure $action, $options = null)
- * @method static Route head_regex(string|array $path, string|array|\Closure $action, $options = null)
- * @method static Route options_regex(string|array $path, string|array|\Closure $action, $options = null)
  */
 
 class Router
@@ -44,6 +38,10 @@ class Router
 
     private static Route $current;
 
+    public static function host(string $hostName, \Closure $callback)
+    {
+        static::group(['host' => $hostName], $callback);
+    }
 
     /**
      * @param $path
@@ -237,7 +235,7 @@ class Router
          */
         $hostName = '.' . $hostName;
         foreach (static::$hosts as $key => $store){
-            if(!Str::endsWith($hostName, $key)) continue;
+            if($key[0] !== '.' || !Str::endsWith($hostName, $key)) continue;
 
             $route = $store->match($req);
             if($route !== null) return $route;
