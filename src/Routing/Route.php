@@ -58,24 +58,6 @@ class Route
         $this->conditions[$param] = $condition;
         return $this;
     }
-    public function checkHost(\Sparkle\Http\Request $req)
-    {
-        if(empty($this->group)) return true;
-
-        $options = $this->group->getOptions();
-        $groupHost = $options['host'] ?? '';
-
-        if(empty($groupHost)) return true;
-
-
-        $reqHost = $req->hostName();
-        $idx = 0;
-        if(($idx = strpos($reqHost, ':')) > 0) {
-            $reqHost = substr($reqHost, 0, $idx);
-        }
-        if($groupHost === $reqHost || $groupHost === '*' . $reqHost) return true;
-        return false;
-    }
 
     public function checkConditions($params)
     {

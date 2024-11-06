@@ -30,24 +30,9 @@ use think\helper\Str;
 
 class Router
 {
-    private static array $routes = [
-        'GET' => [],
-        'HEAD' => [],
-        'POST' => [],
-        'PUT' => [],
-        'DELETE' => [],
-        'OPTIONS' => [],
-        'ANY' => [],
-    ];
-    private static array $static_routes = [
-        'GET' => [],
-        'HEAD' => [],
-        'POST' => [],
-        'PUT' => [],
-        'DELETE' => [],
-        'OPTIONS' => [],
-        'ANY' => [],
-    ];
+    private static ?RouteStore $defaultStore = null;
+
+    private static array $hosts = [];
 
     public const ACTION_LIST = 1;
     public const ACTION_SAVE = 2;
@@ -102,11 +87,6 @@ class Router
     {
         $isRegex = $path[0] === '#' || !empty($options) && isset($options['regexp']) && $options['regexp'] === true;
 
-        if(Str::endsWith($method, '_REGEX')) {
-            $isRegex = true;
-            $method = substr($method, 0, -6);
-        }
-
         $group = self::getGroup();
 
         $action = $group ? $group->makeAction($action) : $action;
@@ -114,7 +94,7 @@ class Router
         if($isRegex){
 
             $route = new Route($method, $path, $action, $group);
-            self::$routes[$method][$path] = $route;
+            self::storeRoute($method, $path, $route);
             return $route;
         }
 
@@ -127,14 +107,30 @@ class Router
 
         if (strpos($path, '{') === false) {
             $route = new Route($method, $path, $action, $group);
-            self::$static_routes[$method][$path] = $route;
+            self::storeRoute($method, $path, $route, true);
             return $route;
         }
         $regexp = self::compilePath2RegExp($path, $params);
         $route = new Route($method, $path, $action, $group);
         $route->setParamNames($params);
-        self::$routes[$method][$regexp] = $route;
+        self::storeRoute($method, $regexp, $route);
         return $route;
+    }
+
+    private static function storeRoute(string $method, string $path, Route $route, bool $static = false)
+    {
+
+        $group = $route->getGroup();
+        $groupHost = $group ? $group->getOptions()['host'] ?? '' : '';
+
+        if(!empty($groupHost)){
+            if(!isset(static::$hosts[$groupHost])) static::$hosts[$groupHost] = new RouteStore();
+            static::$hosts[$groupHost]->store($method, $path, $route, $static);
+            return;
+        }
+
+        if(static::$defaultStore === null) static::$defaultStore = new RouteStore();
+        static::$defaultStore->store($method, $path, $route, $static);
     }
 
     /**
@@ -215,55 +211,45 @@ class Router
 
     private static function match(\Sparkle\Http\Request $req)
     {
-        $path = $req->path();
-        $path = rtrim($path, '/');
-        $method = $req->method();
-        if (!isset(self::$routes[$method]) &&
-            !isset(self::$static_routes[$method])) {
-            return null;
-        }
-
-        if(empty($path)) $path = '/';
-
-        $staticRoutes = array_merge(self::$static_routes[$method], self::$static_routes['ANY']);
-
-        if(isset($staticRoutes[$path])) return $staticRoutes[$path];
-
-        $routes = array_merge(self::$routes[$method], self::$routes['ANY']);
+        $hostName = $req->hostName();
 
         /**
-         * @var $route Route
+         * 严格匹配
          */
-        foreach ($routes as $key => $route) {
-            if (!preg_match($key, $path, $match)) continue;
-            if(!$route->checkHost($req)) continue;
-
-            $paramNames = $route->getParamNames();
-            if(empty($paramNames)){
-                $req->setParams($match);
-                return $route;
-            }
-            $params = [];
-            foreach ($paramNames as $param) {
-                $params[$param['name']] = $match[$param['name']] ?? null;
-            }
-            if (!$route->checkConditions($params)) continue;
-
-            $req->setParams($params);
-            return $route;
+        if(isset(static::$hosts[$hostName])){
+            $route = static::$hosts[$hostName]->match($req);
+            if($route !== null) return $route;
         }
 
-        while (true) {
-            $pattern = $path . '/*';
-            if (isset($staticRoutes[$pattern])) return $staticRoutes[$pattern];
-            $lastIndex = strrpos($path, '/');
-            if ($lastIndex === false) break;
-            $path = substr($path, 0, $lastIndex);
+        /**
+         * 通配符匹配
+         */
+        $wildcardHostName = preg_replace('#^([\w\-]+?)\.#', '*.', $hostName);
+        if($wildcardHostName !== $hostName) {
+            if(isset(static::$hosts[$wildcardHostName])){
+                $route = static::$hosts[$wildcardHostName]->match($req);
+                if($route !== null) return $route;
+            }
         }
-        if (isset($staticRoutes['*'])) return $staticRoutes['*'];
 
-        return null;
+        /**
+         * 尾部匹配
+         */
+        $hostName = '.' . $hostName;
+        foreach (static::$hosts as $key => $store){
+            if(!Str::endsWith($hostName, $key)) continue;
 
+            $route = $store->match($req);
+            if($route !== null) return $route;
+            break;
+        }
+
+        /**
+         * 默认匹配
+         */
+        if(static::$defaultStore === null) return null;
+
+        return static::$defaultStore->match($req);
     }
 
     public static function dispatch(Application $app, \Sparkle\Http\Request $req)
@@ -296,9 +282,7 @@ class Router
 
     public static function __callStatic($name, $arguments)
     {
-        if (!in_array($name, [
-            'head', 'get', 'post', 'put', 'delete', 'options', 'any',
-            'head_regex', 'get_regex', 'post_regex', 'put_regex', 'delete_regex', 'options_regex', 'any_regex'])) throw new NotSupportedException();
+        if (!in_array($name, ['head', 'get', 'post', 'put', 'delete', 'options', 'any'])) throw new NotSupportedException();
 
         if (count($arguments) > 0 && is_array($arguments[0])) {
             $paths = $arguments[0];
@@ -309,11 +293,6 @@ class Router
             return null;
         }
         return self::addRoute(strtoupper($name), ...$arguments);
-    }
-
-    public static function getRegisteredRoutes()
-    {
-        return ['statics' => self::$static_routes, 'routes' => self::$routes];
     }
 
     public static function mixin($name, $allowedAction = 15)
