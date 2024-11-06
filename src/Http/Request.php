@@ -24,6 +24,9 @@ class Request
     private $server;
     private $cookie;
     private $session;
+    private $host = null;
+    private $host_name = null;
+    private $host_port = 0;
 
     private int $step = 0;
 
@@ -38,6 +41,17 @@ class Request
         $this->session = $session;
         $this->files = $files;
         $this->headers = $headers;
+
+        $this->host = trim(strtolower($server['HTTP_HOST'] ?? ''), " \n\r\t\v\0:");
+        if(empty($this->host)) return;
+
+        $this->host_name = $this->host;
+        $idx = strpos($this->host, ':');
+
+        if($idx) {
+            $this->host_name = substr($this->host, 0, $idx);
+            $this->host_port = substr($this->host, $idx + 1);
+        }
     }
 
     public function cloneTo($requestClass){
@@ -241,7 +255,15 @@ class Request
 
     public function host()
     {
-        return $this->server('HTTP_HOST');
+        return $this->host;
+    }
+    public function hostName()
+    {
+        return $this->host_name;
+    }
+    public function hostPort()
+    {
+        return $this->host_port;
     }
     public function schema()
     {

@@ -58,6 +58,24 @@ class Route
         $this->conditions[$param] = $condition;
         return $this;
     }
+    public function checkHost(\Sparkle\Http\Request $req)
+    {
+        if(empty($this->group)) return true;
+
+        $options = $this->group->getOptions();
+        $groupHost = $options['host'] ?? '';
+
+        if(empty($groupHost)) return true;
+
+
+        $reqHost = $req->hostName();
+        $idx = 0;
+        if(($idx = strpos($reqHost, ':')) > 0) {
+            $reqHost = substr($reqHost, 0, $idx);
+        }
+        if($groupHost === $reqHost || $groupHost === '*' . $reqHost) return true;
+        return false;
+    }
 
     public function checkConditions($params)
     {
@@ -94,7 +112,14 @@ class Route
 
         if ($action instanceof Response) return $action;
 
-        list($controller, $method) = $this->getController($action);
+        $bindingParameters = null;
+        $methodInformation = $this->getController($action);
+        if(count($methodInformation) === 2){
+            list($controller, $method) = $methodInformation;
+        }
+        else if(count($methodInformation) === 3){
+            list($controller, $method, $bindingParameters) = $methodInformation;
+        }
 
         if (!class_exists($controller)) return new Response(404, 'Controller Not Found');
 
@@ -102,13 +127,13 @@ class Route
         if (!method_exists($instance, $method)) return new Response(404, 'Method Not Found');
 
 
-        $params = self::getBindParams((new \ReflectionClass($instance))->getMethod($method)->getParameters(), $req);
+        if($bindingParameters === null) $bindingParameters = self::getBindParams((new \ReflectionClass($instance))->getMethod($method)->getParameters(), $req);
 
         if (method_exists($instance, '__beforeInvoke')) {
             $instance->__beforeInvoke($method, $req);
         }
 
-        $response = $instance->{$method}(...$params);
+        $response = $instance->{$method}(...$bindingParameters);
 
         if (method_exists($instance, '__afterInvoke')) {
             $instance->__afterInvoke($method, $req, $response);

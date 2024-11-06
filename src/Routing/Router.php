@@ -87,6 +87,9 @@ class Router
         if (!($callback instanceof \Closure)) {
             throw new \Exception('need Closure');
         }
+
+        if(isset($options['host'])) $options['host'] = strtolower($options['host']);
+
         $group = self::getGroup();
 
         $group = $group ? $group->makeGroup($path, $options) : new Group($path, $options);
@@ -228,8 +231,12 @@ class Router
 
         $routes = array_merge(self::$routes[$method], self::$routes['ANY']);
 
+        /**
+         * @var $route Route
+         */
         foreach ($routes as $key => $route) {
             if (!preg_match($key, $path, $match)) continue;
+            if(!$route->checkHost($req)) continue;
 
             $paramNames = $route->getParamNames();
             if(empty($paramNames)){
