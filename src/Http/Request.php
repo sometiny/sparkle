@@ -313,8 +313,12 @@ class Request
     /**
      * @param array $params
      */
-    public function setParams(array $params): void
+    public function setParams(array $params, bool $override = false): void
     {
+        if($override){
+            foreach ($params as $key => $value) $this->params[$key] = $value;
+            return;
+        }
         $this->params = $params;
     }
 

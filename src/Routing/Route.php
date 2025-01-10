@@ -81,6 +81,15 @@ class Route
             $method = ltrim(substr($action, $idx), '@');
             $controller = substr($action, 0, $idx);
         }
+
+        $idx = strpos($method, '?');
+        if($idx !== false){
+            $parameters = ltrim(substr($method, $idx), '?');
+            $method = substr($method, 0, $idx);
+            parse_str($parameters, $parameters_array);
+
+            if(!empty($parameters_array)) return [$controller, $method, $parameters_array];
+        }
         return [$controller, $method];
     }
 
@@ -101,6 +110,10 @@ class Route
         }
         else if(count($methodInformation) === 3){
             list($controller, $method, $bindingParameters) = $methodInformation;
+            if(!isset($bindingParameters[0])){
+                $req->setParams($bindingParameters, true);
+                $bindingParameters = null;
+            }
         }
 
         if (!class_exists($controller)) return new Response(404, 'Controller Not Found');
