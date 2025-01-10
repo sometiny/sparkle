@@ -12,6 +12,7 @@ use Sparkle\Http\JsonResponse;
 use Sparkle\Http\Request;
 use Sparkle\Http\Response;
 use Sparkle\Logs\File;
+use Sparkle\Logs\Logger;
 use Sparkle\Routing\Router;
 use think\contract\Arrayable;
 use think\contract\Jsonable;
@@ -288,6 +289,7 @@ class Application
         }catch (HttpResponseException $e){
             $e->getResponse()->send();
         }catch (\Throwable $e){
+            (new Logger())->error($e->getMessage() . ' => ' .$e->getTraceAsString());
             $response = new Response(500, null, 'text/plain;charset=utf-8');
             if(env('APP_DEBUG') === true) {
                 $response->setBody((string)$e);
